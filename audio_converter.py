@@ -4,28 +4,19 @@ from tkinterdnd2 import TkinterDnD, DND_FILES  # Drag-and-drop support
 from tkinter import filedialog, ttk, messagebox
 from pydub import AudioSegment
 import threading
+from ttkbootstrap import Style
 
 # Set TCLLIBPATH for the tkdnd library
 os.environ['TCLLIBPATH'] = '/opt/homebrew/Cellar/tcl-tk/8.6.15/lib/tkdnd2.8'
 
 # Supported audio formats (added .m4a support)
-AUDIO_FORMATS = [("MP3 files", "*.mp3"), ("WAV files", "*.wav"), ("FLAC files", "*.flac"),
-                 ("OGG files", "*.ogg"), ("M4A files", "*.m4a")]
-
-def set_dark_theme(root):
-    """Applies a dark theme to the application."""
-    root.configure(bg="#2E2E2E")
-    style = ttk.Style(root)
-    style.theme_use("clam")
-
-    # Dark theme configuration
-    style.configure("TButton", background="#4A4A4A", foreground="white", relief="flat", padding=6, font=("Helvetica", 12))
-    style.map("TButton", background=[("active", "#666666")])
-
-    style.configure("TLabel", background="#2E2E2E", foreground="white", font=("Helvetica", 12))
-    style.configure("TFrame", background="#2E2E2E")
-    style.configure("TListbox", background="#404040", foreground="white")
-    style.configure("TProgressbar", background="#00b300")
+AUDIO_FORMATS = [
+    ("MP3 files", "*.mp3"),
+    ("WAV files", "*.wav"),
+    ("FLAC files", "*.flac"),
+    ("OGG files", "*.ogg"),
+    ("M4A files", "*.m4a"),
+]
 
 class AudioConverterApp:
     def __init__(self, root):
@@ -39,8 +30,22 @@ class AudioConverterApp:
         self.root.drop_target_register(DND_FILES)
         self.root.dnd_bind('<<Drop>>', self.add_files)
 
-        # Apply dark theme
-        set_dark_theme(self.root)
+        # Apply ttkbootstrap theme
+        self.style = Style(theme="superhero")
+        self.root.configure(bg=self.style.colors.bg)
+
+        # Theme selection menu
+        self.theme_var = tk.StringVar(value="superhero")
+        self.label_theme = ttk.Label(self.root, text="Select theme:")
+        self.label_theme.pack(pady=5)
+        self.dropdown_theme = ttk.OptionMenu(
+            self.root,
+            self.theme_var,
+            "superhero",
+            *self.style.theme_names(),
+            command=self.change_theme,
+        )
+        self.dropdown_theme.pack(pady=5)
 
         # Select files button
         self.button_select_files = ttk.Button(self.root, text="Select Files", command=self.select_files)
@@ -50,13 +55,20 @@ class AudioConverterApp:
         self.label_files = ttk.Label(self.root, text="Drag and drop files here or use 'Select Files'")
         self.label_files.pack(pady=10)
 
-        # Selected files display with a wider list box
+        # Selected files display using a centered Treeview
         self.selected_files = []
-        self.file_display = tk.Listbox(self.root, height=5, width=80, bg="#404040", fg="white", selectmode=tk.MULTIPLE)
+        self.file_display = ttk.Treeview(
+            self.root,
+            columns=("file",),
+            show="headings",
+            height=5,
+        )
+        self.file_display.heading("file", text="Selected Files", anchor="center")
+        self.file_display.column("file", anchor="center", width=500)
         self.file_display.pack(pady=5)
 
         # Bind Delete key to remove selected files
-        self.file_display.bind('<Delete>', self.remove_selected_files)
+        self.file_display.bind("<Delete>", self.remove_selected_files)
 
         # Output format selection
         self.label_format = ttk.Label(self.root, text="Select output format:")
@@ -85,7 +97,7 @@ class AudioConverterApp:
         for file in files:
             if file not in self.selected_files and self.is_supported_file(file):
                 self.selected_files.append(file)
-                self.file_display.insert(tk.END, os.path.basename(file))
+                self.file_display.insert("", tk.END, values=(os.path.basename(file),))
 
     def select_files(self):
         """Opens a file dialog to select files."""
@@ -93,7 +105,7 @@ class AudioConverterApp:
         for file in files:
             if file not in self.selected_files and self.is_supported_file(file):
                 self.selected_files.append(file)
-                self.file_display.insert(tk.END, os.path.basename(file))
+                self.file_display.insert("", tk.END, values=(os.path.basename(file),))
 
     def is_supported_file(self, file_path):
         """Checks if the dropped file is in a supported audio format."""
@@ -131,26 +143,29 @@ class AudioConverterApp:
         output_format = self.format_var.get()
 
         output_path = os.path.join(self.output_directory, f"{input_name}.{output_format}")
+        export_format = "mp4" if output_format == "m4a" else output_format
         try:
             audio = AudioSegment.from_file(input_path)
-            audio.export(output_path, format=output_format)
+            audio.export(output_path, format=export_format)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to convert {input_file}: {e}")
 
-    def remove_selected_files(self, event):
-        """Removes the selected files from the listbox and internal file list."""
-        selected_indices = self.file_display.curselection()
+    def change_theme(self, themename):
+        """Callback for theme selection."""
+        self.style.theme_use(themename)
+        self.root.configure(bg=self.style.colors.bg)
 
-        # Remove files from the end to the start to avoid index shift issues
-        for i in reversed(selected_indices):
-            file_name = self.file_display.get(i)
-            # Find the full file path in the selected files list
+    def remove_selected_files(self, event):
+        """Removes the selected files from the display and internal list."""
+        selected_items = self.file_display.selection()
+
+        for item in selected_items:
+            file_name = self.file_display.item(item, "values")[0]
             full_file_path = next((f for f in self.selected_files if os.path.basename(f) == file_name), None)
-            
+
             if full_file_path:
-                # Remove from internal list and listbox
                 self.selected_files.remove(full_file_path)
-                self.file_display.delete(i)
+                self.file_display.delete(item)
 
 if __name__ == "__main__":
     root = TkinterDnD.Tk()  # Create root window with DND capabilities
