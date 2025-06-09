@@ -23,7 +23,8 @@ class AudioConverterApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Audio Converter")
-        self.root.geometry("400x400")  # Start at the smallest size
+        # Increase the default window size so that all widgets are visible
+        self.root.geometry("600x550")
         self.root.minsize(400, 400)
         self.root.maxsize(1000, 800)
 
@@ -66,11 +67,11 @@ class AudioConverterApp:
             self.root,
             columns=("file",),
             show="headings",
-            height=5,
+            height=8,
         )
         self.file_display.heading("file", text="Selected Files", anchor="center")
         self.file_display.column("file", anchor="center", width=350)
-        self.file_display.pack(pady=5, fill="x", expand=True)
+        self.file_display.pack(pady=5, fill="both", expand=True)
 
         # Bind Delete key to remove selected files
         self.file_display.bind("<Delete>", self.remove_selected_files)
