@@ -1,0 +1,11 @@
+certifi==2025.4.26
+cffi==1.17.1
+pillow==10.4.0
+pycparser==2.22
+pydub==0.25.1
+pygame==2.6.1
+pyheif==0.8.0
+pytube @ git+https://github.com/pytube/pytube@a32fff39058a6f7e5e59ecd06a7467b71197ce35
+tkinterdnd2==0.4.3
+ttkbootstrap==1.13.10
+yt-dlp==2025.5.22
